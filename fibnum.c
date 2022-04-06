@@ -17,6 +17,8 @@
 /* Source: https://hackmd.io/@zoanana990/linux2022-quiz3 */
 #define ROUND_UP_TO_64(x) (((x) + 0x3F) & (~(0x3F)))
 
+#define DETECT_OVERFLOW(x, y) ((x) + (y) < MAX(x, y) ? 1 : 0)
+
 /**
  * @brief Structure Definition 
  */
@@ -63,8 +65,18 @@ void fib_resize(fib_t *F, size_t S){
     F->size = S;
 }
 
-void fib_print(fib_t *F, char *S){
 
+char *fib_print(fib_t *F){
+
+    int length = 3 * sizeof(unsigned long long) * F->size;
+    char *res = malloc(sizeof(char) * length);
+
+    /* let the interger to string */
+    for(int i = 0; i < F->size; i++){
+
+    }
+
+    return res;
 }
 
 void fib_assign(fib_t *src, fib_t *dst){
@@ -113,7 +125,8 @@ unsigned int fib_msb(fib_t *F){
 int fib_cmp(fib_t *prev1, fib_t *prev2){
     
     /**
-     * @brief There are three situation
+     * @brief 
+     * There are three situation
      * 1. prev1->size < prev2->size
      * 2. prev1->size > prev2->size
      * 3. prev1->size = prev2->size
@@ -152,7 +165,7 @@ void fib_lsh(fib_t *F, unsigned int bit){
     if(ROUND_UP_TO_64(msb) < ROUND_UP_TO_64(msb + bit))
         fib_resize(F, F->size + 1);
         
-    /* Source: https://github.com/KYG-yaya573142/fibdrv/bn.c */
+    /* Source: https://github.com/KYG-yaya573142/fibdrv/blob/master/bn_kernel.c */
     for(int i = F->size - 1; i > 0; i--)
         F->num[i] = F->num[i] << bit | F->num[i - 1] >> (63 - bit);
     
@@ -173,12 +186,36 @@ void fib_add(fib_t *prev1, fib_t *prev2, fib_t *F){
      * 1. if prev1 = prev2 -> fib_lsf(prev1, 1)
      * 2. need to resize
      */
-    // if(fib_compare(prev1, prev2) == 0){
 
-    // }
+    // if prev1 == prev2, left shift one bit
+    if(!fib_cmp(prev1, prev2)){
+        
+        fib_lsh(prev1, 1);
+        fib_assign(prev1, F); 
+        return;
 
+    }
 
+    // else is prev1 > prev2
+    int msb = MAX(fib_msb(prev1), fib_msb(prev2));
 
+    unsigned int carry = 0;
+
+    for(int i=0; i<F->size; i++){
+        
+        unsigned int p1 = (i < prev1->size) ? prev1->num[i] : 0;
+        unsigned int p2 = (i < prev2->size) ? prev2->num[i] : 0;
+        unsigned long long sum = p1 + p2 + carry;
+        F->num[i] = p1 + p2;
+        carry = DETECT_OVERFLOW(p1, p2); 
+        printf("carry = %d\n", carry);
+    }
+
+    if(carry){
+        printf("ADD\n");
+        fib_resize(F, F->size + 1);
+        F->num[F->size - 1] = 1;
+    }
 }
 
 /* F = prev1 - prev2 */
@@ -196,13 +233,20 @@ void fib_mul(fib_t *prev1, fib_t *prev2, fib_t *F){
  */
 
 int main(){
+    fib_t *F1 = fib_init(1);
+    fib_t *F2 = fib_init(1);
     fib_t *F = fib_init(1);
 
-    F->num[0] = 64;
+    F1->num[0] = 0xFFFFFFFFFFFFFFFF;
+    F2->num[0] = 1;
+    F->num[0] = 0;
 
-    fib_lsh(F, 2);
-    printf("F->num[0] = %d, F->size = %d, 64 << 2 = %d\n", F->num[0], F->size, 64<<2);
+    fib_add(F1, F2, F);
+    
+    printf("F->size = %d, F->num[1] = %llu, F->num[0] = %llu\n", F->size, F->num[1], F->num[0]);
 
+    fib_free(F2);
+    fib_free(F1);
     fib_free(F);
     return 0;
 }
