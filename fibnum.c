@@ -16,7 +16,6 @@
 
 /* Source: https://hackmd.io/@zoanana990/linux2022-quiz3 */
 #define ROUND_UP_TO_64(x) (((x) + 0x3F) & (~(0x3F)))
-
 #define DETECT_OVERFLOW(x, y) ((x) + (y) < MAX(x, y) ? 1 : 0)
 
 /**
@@ -212,7 +211,6 @@ void fib_add(fib_t *prev1, fib_t *prev2, fib_t *F){
     }
 
     if(carry){
-        printf("ADD\n");
         fib_resize(F, F->size + 1);
         F->num[F->size - 1] = 1;
     }
@@ -233,20 +231,23 @@ void fib_mul(fib_t *prev1, fib_t *prev2, fib_t *F){
  */
 
 int main(){
-    fib_t *F1 = fib_init(1);
-    fib_t *F2 = fib_init(1);
-    fib_t *F = fib_init(1);
-
-    F1->num[0] = 0xFFFFFFFFFFFFFFFF;
-    F2->num[0] = 1;
-    F->num[0] = 0;
-
-    fib_add(F1, F2, F);
     
-    printf("F->size = %d, F->num[1] = %llu, F->num[0] = %llu\n", F->size, F->num[1], F->num[0]);
+    // fib_t *F1 = fib_init(1);
+    // fib_t *F2 = fib_init(1);
+    // fib_t *F = fib_init(1);
 
-    fib_free(F2);
-    fib_free(F1);
-    fib_free(F);
+    // F1->num[0] = 0xFFFFFFFFFFFFFFFF;
+    // F2->num[0] = 1;
+    // F->num[0] = 0;
+
+    // fib_add(F1, F2, F);
+    
+    // printf("F->size = %d, F->num[1] = %llu, F->num[0] = %llu\n", F->size, F->num[1], F->num[0]);
+
+    // fib_free(F2);
+    // fib_free(F1);
+    // fib_free(F);
+    printf("1 << 31UL = %x\n", 1 << 31UL);
+
     return 0;
 }
