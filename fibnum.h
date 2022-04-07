@@ -43,3 +43,13 @@ unsigned int fib_msb(fib_t *);
 int fib_cmp(fib_t *, fib_t *);
 void fib_lsh(fib_t *, unsigned int);
 void fib_add(fib_t *, fib_t *, fib_t *);
+
+/**
+ * @brief 
+ * fib(100)
+ *    10           1
+ * | xxx | 18446744073709551616|
+ * 10* XXX + 1
+ * 
+ * 18446744073709551616 * XXX + 18446744073709551616
+ */

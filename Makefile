@@ -1,3 +1,5 @@
 all: fibnum.c
 	gcc -o fibnum fibnum.c
-	./fibnum > fib.txt
+	./fibnum > fib
+plot: 
+	gnuplot plot.gp

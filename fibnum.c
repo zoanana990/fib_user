@@ -190,7 +190,7 @@ char *fib_strmul(char *num1, char *num2){
 
     for(int i=len1-1; i >= 0; i--)
         for(int j=len2-1; j >= 0; j--)
-            arr[i+j+1] += (num1[i]-'0')*(num2[j]-'0');
+            arr[i+j+1] += (num1[i]-'0') * (num2[j]-'0');
     
     for(int i=len-1; i > 0; i--){
         arr[i-1] += arr[i]/10;
@@ -360,6 +360,8 @@ void fib_mul(fib_t *prev1, fib_t *prev2, fib_t *F){
 
 }
 
+
+
 /**
  * @brief Method, iteration, fast-doubling 
  */
@@ -372,21 +374,26 @@ void fibnum_iter(unsigned int n){
 
     for(int i=2; i<=n; i++){
         fib_add(prev1, prev2, F);
-        // char *res = fib_print(F);
-        // printf("fib(%d) = %s\n", i, res);
         fib_assign(prev1, prev2);
         fib_assign(F, prev1);
-        // free(res);
     }
     char *res = fib_print(F);
-    printf("fib(%d) = %s\n", n, res);
+    // printf("fib(%d) = %s\n", n, res);
     free(res);
 
     return 0;
 }
 
+#include <time.h>
 int main(){
     
-    for(int i=0; i<=100; i++)
+    struct timespec start, end;
+    for (unsigned int i = 0; i <= 300; i++) {
+        clock_gettime(1, &start);
         fibnum_iter(i);
+        clock_gettime(1, &end);
+        long long ut = (long long)(end.tv_sec * 1e9 + end.tv_nsec)
+                 - (start.tv_sec * 1e9 + start.tv_nsec);
+        printf("%d\t%lld\n", i, ut);
+    }
 }
