@@ -1,27 +1,8 @@
-/**
- * @file fibnum.c
- * @author zoanana990
- * @brief 
- * @version 0.1
- * @date 2022-03-31
- * 
- * @copyright Copyright (c) 2022
- **/
-
-#include <stdio.h>
-#include <stdlib.h>
-
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-
-/* Source: https://hackmd.io/@zoanana990/linux2022-quiz3 */
-#define ROUND_UP_TO_64(x) (((x) + 0x3F) & (~(0x3F)))
-#define DETECT_OVERFLOW(x, y) ((x) + (y) < MAX(x, y) ? 1 : 0)
+#include "fibnum.h"
 
 /**
  * @brief Structure Definition 
  */
-
 typedef struct fibnum{
     unsigned long long *num;
     size_t size;
@@ -64,16 +45,150 @@ void fib_resize(fib_t *F, size_t S){
     F->size = S;
 }
 
+size_t fib_strlen(const char *str){
+    /**
+     * @brief Copy from GLIBC strlen
+     * 
+     */
+
+    const char *char_ptr;
+    const unsigned long int *longword_ptr;
+    unsigned long int longword, himagic, lomagic;
+
+    for (char_ptr = str; ((unsigned long int) char_ptr
+                & (sizeof (longword) - 1)) != 0;
+        ++char_ptr)
+        if (*char_ptr == '\0')
+            return char_ptr - str;
+
+    longword_ptr = (unsigned long int *) char_ptr;
+
+    himagic = 0x80808080L;
+    lomagic = 0x01010101L;
+    if (sizeof (longword) > 4){
+        himagic = ((himagic << 16) << 16) | himagic;
+        lomagic = ((lomagic << 16) << 16) | lomagic;
+    }
+
+    for (;;){
+        longword = *longword_ptr++;
+
+        if (((longword - lomagic) & ~longword & himagic) != 0){
+            const char *cp = (const char *) (longword_ptr - 1);
+
+            if (cp[0] == 0)
+                return cp - str;
+            if (cp[1] == 0)
+                return cp - str + 1;
+            if (cp[2] == 0)
+                return cp - str + 2;
+            if (cp[3] == 0)
+                return cp - str + 3;
+            if (sizeof (longword) > 4)
+            {
+                if (cp[4] == 0)
+                    return cp - str + 4;
+                if (cp[5] == 0)
+                    return cp - str + 5;
+                if (cp[6] == 0)
+                    return cp - str + 6;
+                if (cp[7] == 0)
+                    return cp - str + 7;
+            }
+        }
+    }
+}
+
+void fib_strncpy(char *dst, char *src, size_t n)
+{
+    // copy the string
+    for (int i = 0; i < n; i++)
+        *(dst + i) = *(src + i);
+
+    *(dst + n) = '\0';
+}
+
+char *fib_itos(unsigned long long num){
+    
+    
+    while(num)
+}
+
+char *fib_stradd(char *num1, char *num2){
+    
+    unsigned int l1 = fib_strlen(num1), l2 = fib_strlen(num2);
+    
+    if(fib_strlen(num1) < fib_strlen(num2)){
+        return fib_stradd(num2, num1);
+    }
+
+    int carry = 0;
+    int l = MAX(l1, l2);
+    char *res = malloc(sizeof(char) * l + 1);
+
+    int i = l1 - 1;
+    for(int j = l2 - 1; i >= 0 && j >= 0; i--, j--){
+        int sum = num1[i] - '0' + num2[j] - '0' + carry;
+        res[i] = sum % 10 + '0';
+        carry = sum / 10;
+    }
+
+    for (; i >= 0; i--) {
+        int sum = num1[i] - '0' + carry;
+        res[i] = sum % 10 + '0';
+        carry = sum / 10;
+    }
+
+    if(carry){
+        int k = l + 1;
+        res = realloc(res, k + 1);
+        res[k] = '\0';
+        for(int i = k - 1; i > 0; i--)
+            res[i] = res[i - 1];
+        res[0] = '1';
+    }else
+        res[l1] = '\0';
+    
+    return res;
+}
+
+char *fib_strmul(char *num1, char *num2){
+    
+    size_t len1 = fib_strlen(num1), len2 = fib_strlen(num2), len = len1+len2;
+    
+    short *arr = malloc(sizeof(short) * len);
+    
+    for(int i=0; i<len; i++)
+        arr[i] = 0;
+
+    for(int i=len1-1; i >= 0; i--)
+        for(int j=len2-1; j >= 0; j--)
+            arr[i+j+1] += (num1[i]-'0')*(num2[j]-'0');
+    
+    for(int i=len-1; i > 0; i--){
+        arr[i-1] += arr[i]/10;
+        arr[i] %= 10;
+    }
+    
+    char *s = malloc(sizeof(char)*(len+1));
+    
+    int index = 0, i = 0;
+    
+    if(arr[i]==0) i++; 
+    
+    while(i < len)
+        s[index++] = arr[i++]+'0';
+    
+    s[index] = '\0';
+    
+    return s;
+}
+
 
 char *fib_print(fib_t *F){
 
-    int length = 3 * sizeof(unsigned long long) * F->size;
-    char *res = malloc(sizeof(char) * length);
+    char *res = malloc(256);
 
-    /* let the interger to string */
-    for(int i = 0; i < F->size; i++){
-
-    }
 
     return res;
 }
@@ -92,8 +207,9 @@ void fib_assign(fib_t *src, fib_t *dst){
  * substract, multiply...
  */
 
-/** Find the leading zero by shifting method
- *  Reference: https://hackmd.io/@sysprog/c-numerics
+/** 
+ * @brief Find the leading zero by shifting method
+ * Reference: https://hackmd.io/@sysprog/c-numerics
  */
 unsigned int gcc_clz(unsigned long long x){
     
@@ -149,7 +265,6 @@ int fib_cmp(fib_t *prev1, fib_t *prev2){
         }
         return 0;
     }
-    
 }
 
 
@@ -232,22 +347,21 @@ void fib_mul(fib_t *prev1, fib_t *prev2, fib_t *F){
 
 int main(){
     
-    // fib_t *F1 = fib_init(1);
-    // fib_t *F2 = fib_init(1);
-    // fib_t *F = fib_init(1);
+    fib_t *F1 = fib_init(1);
+    fib_t *F2 = fib_init(1);
+    fib_t *F = fib_init(1);
 
-    // F1->num[0] = 0xFFFFFFFFFFFFFFFF;
-    // F2->num[0] = 1;
-    // F->num[0] = 0;
+    F1->num[0] = 0xFFFFFFFFFFFFFFFF;
+    F2->num[0] = 1;
+    F->num[0] = 0;
 
-    // fib_add(F1, F2, F);
+    fib_add(F1, F2, F);
     
-    // printf("F->size = %d, F->num[1] = %llu, F->num[0] = %llu\n", F->size, F->num[1], F->num[0]);
+    printf("F->size = %d, F->num[1] = %llu, F->num[0] = %llu\n", F->size, F->num[1], F->num[0]);
 
-    // fib_free(F2);
-    // fib_free(F1);
-    // fib_free(F);
-    printf("1 << 31UL = %x\n", 1 << 31UL);
+    fib_free(F2);
+    fib_free(F1);
+    fib_free(F);
 
     return 0;
 }
