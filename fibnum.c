@@ -3,10 +3,6 @@
 /**
  * @brief Structure Definition 
  */
-typedef struct fibnum{
-    unsigned long long *num;
-    size_t size;
-}fib_t;
 
 fib_t *fib_init(size_t S){
     
@@ -99,6 +95,17 @@ size_t fib_strlen(const char *str){
     }
 }
 
+/* Fibonacci String Reverse */
+void fib_strrev(char* s, int sSize){
+
+     for(int i=0;i<sSize/2;i++)
+     {
+         char c = s[i];
+         s[i] = s[sSize-1-i];
+         s[sSize-1-i] = c;
+     }
+}
+
 void fib_strncpy(char *dst, char *src, size_t n)
 {
     // copy the string
@@ -110,10 +117,29 @@ void fib_strncpy(char *dst, char *src, size_t n)
 
 char *fib_itos(unsigned long long num){
     
+    size_t s = 20;
     
-    while(num)
+    char *res = malloc(s);
+    
+    int j = 0;
+    
+    while(num != 0 && j < s){
+        res[j] = num % 10 + '0';
+        num /= 10, j++;
+    }
+    res[j] = '\0';
+
+    s = fib_strlen(res);
+
+    fib_strrev(res, s);
+
+    res = realloc(res, s + 1);
+    res[s] = '\0';
+    
+    return res;
 }
 
+/* NEED FREE */
 char *fib_stradd(char *num1, char *num2){
     
     unsigned int l1 = fib_strlen(num1), l2 = fib_strlen(num2);
@@ -148,10 +174,11 @@ char *fib_stradd(char *num1, char *num2){
         res[0] = '1';
     }else
         res[l1] = '\0';
-    
+
     return res;
 }
 
+/* NEED FREE */
 char *fib_strmul(char *num1, char *num2){
     
     size_t len1 = fib_strlen(num1), len2 = fib_strlen(num2), len = len1+len2;
@@ -180,15 +207,23 @@ char *fib_strmul(char *num1, char *num2){
         s[index++] = arr[i++]+'0';
     
     s[index] = '\0';
-    
+
     return s;
 }
 
-
+/* NEED FREE */
 char *fib_print(fib_t *F){
 
+    char *temp[F->size];
     char *res = malloc(256);
-
+    res[0] = '0', res[1] = '\0';
+    for(int i = 0; i< F->size; i++){
+        temp[i] = fib_itos(F->num[i]);
+        for(int j = 0; j < i; j++){
+            temp[i] = fib_strmul(temp[i], ULL_MAX_STR);
+        }
+        res = fib_stradd(temp[i], res);
+    }
 
     return res;
 }
@@ -294,21 +329,6 @@ void fib_rsh(fib_t *src, unsigned int bit){
 
 /* F = prev1 + prev2 */
 void fib_add(fib_t *prev1, fib_t *prev2, fib_t *F){
-    
-    /**
-     * @brief There are two situations in fib_add
-     * 1. if prev1 = prev2 -> fib_lsf(prev1, 1)
-     * 2. need to resize
-     */
-
-    // if prev1 == prev2, left shift one bit
-    if(!fib_cmp(prev1, prev2)){
-        
-        fib_lsh(prev1, 1);
-        fib_assign(prev1, F); 
-        return;
-
-    }
 
     // else is prev1 > prev2
     int msb = MAX(fib_msb(prev1), fib_msb(prev2));
@@ -317,12 +337,11 @@ void fib_add(fib_t *prev1, fib_t *prev2, fib_t *F){
 
     for(int i=0; i<F->size; i++){
         
-        unsigned int p1 = (i < prev1->size) ? prev1->num[i] : 0;
-        unsigned int p2 = (i < prev2->size) ? prev2->num[i] : 0;
+        unsigned long long p1 = (i < prev1->size) ? prev1->num[i] : 0;
+        unsigned long long p2 = (i < prev2->size) ? prev2->num[i] : 0;
         unsigned long long sum = p1 + p2 + carry;
-        F->num[i] = p1 + p2;
+        F->num[i] = sum;
         carry = DETECT_OVERFLOW(p1, p2); 
-        printf("carry = %d\n", carry);
     }
 
     if(carry){
@@ -345,23 +364,29 @@ void fib_mul(fib_t *prev1, fib_t *prev2, fib_t *F){
  * @brief Method, iteration, fast-doubling 
  */
 
-int main(){
-    
-    fib_t *F1 = fib_init(1);
-    fib_t *F2 = fib_init(1);
+void fibnum_iter(unsigned int n){
+    fib_t *prev2 = fib_init(1);
+    fib_t *prev1 = fib_init(1);
+    prev1->num[0] = 1;
     fib_t *F = fib_init(1);
 
-    F1->num[0] = 0xFFFFFFFFFFFFFFFF;
-    F2->num[0] = 1;
-    F->num[0] = 0;
-
-    fib_add(F1, F2, F);
-    
-    printf("F->size = %d, F->num[1] = %llu, F->num[0] = %llu\n", F->size, F->num[1], F->num[0]);
-
-    fib_free(F2);
-    fib_free(F1);
-    fib_free(F);
+    for(int i=2; i<=n; i++){
+        fib_add(prev1, prev2, F);
+        // char *res = fib_print(F);
+        // printf("fib(%d) = %s\n", i, res);
+        fib_assign(prev1, prev2);
+        fib_assign(F, prev1);
+        // free(res);
+    }
+    char *res = fib_print(F);
+    printf("fib(%d) = %s\n", n, res);
+    free(res);
 
     return 0;
+}
+
+int main(){
+    
+    for(int i=0; i<=100; i++)
+        fibnum_iter(i);
 }
