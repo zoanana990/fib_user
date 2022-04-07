@@ -16,7 +16,16 @@
 
 /* Source: https://hackmd.io/@zoanana990/linux2022-quiz3 */
 #define ROUND_UP_TO_64(x) (((x) + 0x3F) & (~(0x3F)))
+
+/* Source: CSAPP Chapter 2 Example 21 */
 #define DETECT_OVERFLOW(x, y) ((x) + (y) < MAX(x, y) ? 1 : 0)
+#define ULL_MAX_STR "18446744073709551616"
+
+typedef struct fibnum{
+    unsigned long long *num;
+    size_t size;
+}fib_t;
+
 
 fib_t *fib_init(size_t);
 void fib_free(fib_t *);
