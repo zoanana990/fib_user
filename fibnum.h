@@ -20,6 +20,7 @@
 /* Source: CSAPP Chapter 2 Example 21 */
 #define DETECT_OVERFLOW(x, y) ((x) + (y) < MAX(x, y) ? 1 : 0)
 #define ULL_MAX_STR "18446744073709551616"
+#define NEED_SIZE(x) (ROUND_UP_TO_64(x) >> 6) 
 
 typedef struct fibnum{
     unsigned long long *num;
@@ -41,15 +42,6 @@ unsigned int gcc_clz(unsigned long long);
 unsigned int fib_clz(fib_t *);
 unsigned int fib_msb(fib_t *);
 int fib_cmp(fib_t *, fib_t *);
-void fib_lsh(fib_t *, unsigned int);
+void fib_lsh(fib_t *, unsigned int, fib_t *);
+void fib_rsh(fib_t *, unsigned int, fib_t *);
 void fib_add(fib_t *, fib_t *, fib_t *);
-
-/**
- * @brief 
- * fib(100)
- *    10           1
- * | xxx | 18446744073709551616|
- * 10* XXX + 1
- * 
- * 18446744073709551616 * XXX + 18446744073709551616
- */

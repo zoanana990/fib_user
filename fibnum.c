@@ -304,10 +304,36 @@ int fib_cmp(fib_t *prev1, fib_t *prev2){
 
 
 /* left shift */
-void fib_lsh(fib_t *F, unsigned int bit){
+void fib_lsh(fib_t *F, unsigned int bit, fib_t *dst){
     
-    /* shift 0 ~ 63 bit */
-    bit = bit & 0x3F;
+    fib_assign(F, dst);
+
+    unsigned int msb = fib_msb(dst);
+
+    if(NEED_SIZE(bit) < NEED_SIZE(bit + msb))
+        fib_resize(dst, NEED_SIZE(bit + msb));
+
+    /**
+     * @brief If we need to shift 64 bit, 129 bit...
+     * we can first shift >> 63, then shift 1 bit
+     */
+    int n = bit & bit;
+    bit = bit >> 6;
+
+    for(int i = dst->size - 1; i > 0; i--)
+        dst->num[i] = dst->num[i] << bit | dst->num[i - 1] >> (63 - bit);
+    
+    dst->num[0] <<= bit;
+}
+
+/* right shift */
+void fib_rsh(fib_t *F, unsigned int bit, fib_t *dst){
+    
+    /**
+     * @brief Left Shift what every you want
+     * 
+     */
+    fib_assign(F, dst);
 
     unsigned int msb = fib_msb(F);
 
@@ -320,12 +346,6 @@ void fib_lsh(fib_t *F, unsigned int bit){
     
     F->num[0] <<= bit;
 }
-
-/* right shift */
-void fib_rsh(fib_t *src, unsigned int bit){
-    
-}
-
 
 /* F = prev1 + prev2 */
 void fib_add(fib_t *prev1, fib_t *prev2, fib_t *F){
@@ -355,18 +375,45 @@ void fib_sub(fib_t *prev1, fib_t *prev2, fib_t *F){
 
 }
 
-/* F = prev1 * prev2 */
-void fib_mul(fib_t *prev1, fib_t *prev2, fib_t *F){
+/* This function is to test the bit is one */
+int fib_isone(){
 
 }
 
+/* F = prev1 * prev2 */
+void fib_mul(fib_t *prev1, fib_t *prev2, fib_t *F){
 
+    /**
+     * @brief Multiple is left shift and add
+     * @example, there are 1283 * 4567 
+     * 4567 in binary is 
+     * 0b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0001_0001_1101_0111
+     * and the MSB(Most Significant Bit) is 12
+     * the digit in one is 12, 8, 7, 6, 4, 3, 2, 1 (Here is a function)
+     * Thus, 1283 * 4567 = 1283 << (12 - 1) + 1283 << (8 - 1) + 1283 << (7 - 1) + ...
+     */
+
+    int msb = fib_msb(prev1) + fib_msb(prev1);
+    int m2 = fib_msb(prev2);
+    size_t n = msb >> 6;
+    
+    if(n != F->size)
+        fib_resize(F, n);
+
+    /* Use Bitwise Operator */
+    for(int i=0; i<msb; i++){
+        if(!fib_isone(prev2)){
+            return;
+        }
+    }
+}
 
 /**
  * @brief Method, iteration, fast-doubling 
  */
 
 void fibnum_iter(unsigned int n){
+    
     fib_t *prev2 = fib_init(1);
     fib_t *prev1 = fib_init(1);
     prev1->num[0] = 1;
@@ -378,22 +425,15 @@ void fibnum_iter(unsigned int n){
         fib_assign(F, prev1);
     }
     char *res = fib_print(F);
-    // printf("fib(%d) = %s\n", n, res);
     free(res);
 
     return 0;
+
 }
 
 #include <time.h>
 int main(){
     
-    struct timespec start, end;
-    for (unsigned int i = 0; i <= 300; i++) {
-        clock_gettime(1, &start);
-        fibnum_iter(i);
-        clock_gettime(1, &end);
-        long long ut = (long long)(end.tv_sec * 1e9 + end.tv_nsec)
-                 - (start.tv_sec * 1e9 + start.tv_nsec);
-        printf("%d\t%lld\n", i, ut);
-    }
+    printf("Need size 129 = %ld", NEED_SIZE(129));
+    return 0;
 }
