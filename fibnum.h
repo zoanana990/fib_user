@@ -27,6 +27,10 @@ typedef struct fibnum{
     size_t size;
 }fib_t;
 
+#define print_each_index(F) \
+     for(int i=0; i<F->size; i++) \
+        printf("num[%d] = %llu\n", i, F->num[i]) \
+     
 
 fib_t *fib_init(size_t);
 void fib_free(fib_t *);
@@ -42,6 +46,8 @@ unsigned int gcc_clz(unsigned long long);
 unsigned int fib_clz(fib_t *);
 unsigned int fib_msb(fib_t *);
 int fib_cmp(fib_t *, fib_t *);
+void fib_numlsh(fib_t *, unsigned int);
 void fib_lsh(fib_t *, unsigned int, fib_t *);
+void fib_numrsh(fib_t *, unsigned int);
 void fib_rsh(fib_t *, unsigned int, fib_t *);
 void fib_add(fib_t *, fib_t *, fib_t *);

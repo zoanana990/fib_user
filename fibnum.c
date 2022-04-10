@@ -221,9 +221,20 @@ char *fib_print(fib_t *F){
         temp[i] = fib_itos(F->num[i]);
         for(int j = 0; j < i; j++){
             temp[i] = fib_strmul(temp[i], ULL_MAX_STR);
+            printf("temp[%d] = %s\n", i, temp[i]);
         }
         res = fib_stradd(temp[i], res);
     }
+    printf("res = %s\n", res);
+
+    // check redundant zeroes
+    // unsigned int n = fib_strlen(res), index = 0;
+    
+    // for(int i = 0; i < n; i++)
+    //     if(res[i] == '0')
+    //         index++;
+
+
 
     return res;
 }
@@ -302,49 +313,59 @@ int fib_cmp(fib_t *prev1, fib_t *prev2){
     }
 }
 
+/* Shift indexes */
+void fib_idxlsh(fib_t *F, const unsigned int idx){
+
+    fib_resize(F, F->size + idx);
+
+    for(int i = F->size - 1; i >= idx; i--)
+        F->num[i] = F->num[i-idx];
+
+    for(int i = 0; i < idx; i++)
+        F->num[i] = 0; 
+
+}
+
+/* Shift at most 63 bit */
+void fib_numlsh(fib_t *F, unsigned int bit){
+    
+    for(int i = F->size - 1; i > 0; i--)
+        F->num[i] = F->num[i] << bit | F->num[i - 1] >> (63 - bit);
+    
+    F->num[0] <<= bit;
+}
 
 /* left shift */
 void fib_lsh(fib_t *F, unsigned int bit, fib_t *dst){
     
     fib_assign(F, dst);
 
-    unsigned int msb = fib_msb(dst);
-
-    if(NEED_SIZE(bit) < NEED_SIZE(bit + msb))
-        fib_resize(dst, NEED_SIZE(bit + msb));
-
     /**
      * @brief If we need to shift 64 bit, 129 bit...
      * we can first shift >> 63, then shift 1 bit
      */
-    int n = bit & bit;
-    bit = bit >> 6;
+    int count = 0, i;
 
-    for(int i = dst->size - 1; i > 0; i--)
-        dst->num[i] = dst->num[i] << bit | dst->num[i - 1] >> (63 - bit);
+    for(i = bit; i > 63; i >>= 6)
+        count++;
     
-    dst->num[0] <<= bit;
+    printf("i = %d\n", i);
+    if(count)
+        fib_idxlsh(dst, i);
+    
+    bit = bit - (count << 6);
+    
+    if(bit)
+        fib_numlsh(dst, bit);
+}
+
+void fib_numrsh(fib_t *F, unsigned int bit){
+
 }
 
 /* right shift */
 void fib_rsh(fib_t *F, unsigned int bit, fib_t *dst){
     
-    /**
-     * @brief Left Shift what every you want
-     * 
-     */
-    fib_assign(F, dst);
-
-    unsigned int msb = fib_msb(F);
-
-    if(ROUND_UP_TO_64(msb) < ROUND_UP_TO_64(msb + bit))
-        fib_resize(F, F->size + 1);
-        
-    /* Source: https://github.com/KYG-yaya573142/fibdrv/blob/master/bn_kernel.c */
-    for(int i = F->size - 1; i > 0; i--)
-        F->num[i] = F->num[i] << bit | F->num[i - 1] >> (63 - bit);
-    
-    F->num[0] <<= bit;
 }
 
 /* F = prev1 + prev2 */
@@ -392,20 +413,6 @@ void fib_mul(fib_t *prev1, fib_t *prev2, fib_t *F){
      * the digit in one is 12, 8, 7, 6, 4, 3, 2, 1 (Here is a function)
      * Thus, 1283 * 4567 = 1283 << (12 - 1) + 1283 << (8 - 1) + 1283 << (7 - 1) + ...
      */
-
-    int msb = fib_msb(prev1) + fib_msb(prev1);
-    int m2 = fib_msb(prev2);
-    size_t n = msb >> 6;
-    
-    if(n != F->size)
-        fib_resize(F, n);
-
-    /* Use Bitwise Operator */
-    for(int i=0; i<msb; i++){
-        if(!fib_isone(prev2)){
-            return;
-        }
-    }
 }
 
 /**
@@ -424,16 +431,27 @@ void fibnum_iter(unsigned int n){
         fib_assign(prev1, prev2);
         fib_assign(F, prev1);
     }
+
     char *res = fib_print(F);
     free(res);
-
-    return 0;
-
+    return;
 }
 
 #include <time.h>
 int main(){
     
-    printf("Need size 129 = %ld", NEED_SIZE(129));
+    fib_t *F = fib_init(1);
+    F->num[0] = 1;
+    fib_t *temp = fib_init(1);
+    // char *res = fib_print(F);
+    // printf("F = %s\n", res);
+    printf("KKK\n");
+    fib_lsh(F, 128, temp);
+    char *res = fib_print(temp);
+    printf("F << 64 = %s\n", res);
+    free(res);
+    fib_free(F);
+    fib_free(temp);
+    // printf("64 >> 6 = %d\n", 64 >> 6);
     return 0;
 }
