@@ -328,10 +328,13 @@ void fib_idxlsh(fib_t *F, const unsigned int idx){
 
 /* Shift at most 63 bit */
 void fib_numlsh(fib_t *F, unsigned int bit){
-    
+    printf("F->num[0] >> (64 - bit) = %llu, F->num[1] = %d, \
+    F->num[i] << bit | F->num[i - 1] >> (64 - bit) = %d\n", \
+    F->num[0] >> (64 - bit), F->num[1], F->num[1] << bit | F->num[0] >> (64 - bit));
+
     for(int i = F->size - 1; i > 0; i--)
-        F->num[i] = F->num[i] << bit | F->num[i - 1] >> (63 - bit);
-    
+        F->num[i] = F->num[i] << bit | F->num[i - 1] >> (64 - bit);
+    // printf("F->num[i - 1] >> (64 - bit) = %llu, F->num[1] = %d\n", F->num[0] >> (64 - bit), F->num[1]);
     F->num[0] <<= bit;
 }
 
@@ -345,16 +348,19 @@ void fib_lsh(fib_t *F, unsigned int bit, fib_t *dst){
      * we can first shift >> 63, then shift 1 bit
      */
     int count = 0, i;
+    size_t msb = fib_msb(F);
+    if(NEED_SIZE(msb) < NEED_SIZE(msb + bit))
+        fib_resize(F, NEED_SIZE(msb + bit));
 
     for(i = bit; i > 63; i >>= 6)
         count++;
-    
-    printf("i = %d\n", i);
+        
     if(count)
         fib_idxlsh(dst, i);
     
     bit = bit - (count << 6);
-    
+    printf("F->size = %d, bit = %d\n", F->size, bit);
+
     if(bit)
         fib_numlsh(dst, bit);
 }
@@ -371,7 +377,6 @@ void fib_rsh(fib_t *F, unsigned int bit, fib_t *dst){
 /* F = prev1 + prev2 */
 void fib_add(fib_t *prev1, fib_t *prev2, fib_t *F){
 
-    // else is prev1 > prev2
     int msb = MAX(fib_msb(prev1), fib_msb(prev2));
 
     unsigned int carry = 0;
@@ -397,8 +402,26 @@ void fib_sub(fib_t *prev1, fib_t *prev2, fib_t *F){
 }
 
 /* This function is to test the bit is one */
-int fib_isone(){
+int fib_bitisone(fib_t *prev2, size_t bit){
+    
+    int count = 0, mask = bit & 0x3F;
+    
+    while(bit > 63){
+        /* check indexes */
+        bit = bit >> 6;
+        count++; 
+    }
 
+    mask = 1 << mask;
+
+    /* check < 64 bit */
+    return (prev2->num[count] & mask) ? 1 : 0;
+}
+
+void fib_zero(fib_t *F){
+    F->size = 1;
+    F->num = realloc(F->num, sizeof(unsigned long long) * 1);
+    F->num[0] = 0;
 }
 
 /* F = prev1 * prev2 */
@@ -410,9 +433,29 @@ void fib_mul(fib_t *prev1, fib_t *prev2, fib_t *F){
      * 4567 in binary is 
      * 0b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0001_0001_1101_0111
      * and the MSB(Most Significant Bit) is 12
-     * the digit in one is 12, 8, 7, 6, 4, 3, 2, 1 (Here is a function)
-     * Thus, 1283 * 4567 = 1283 << (12 - 1) + 1283 << (8 - 1) + 1283 << (7 - 1) + ...
+     * the digit in one is 12, 8, 7, 6, 4, 2, 1, 0 (Here is a function)
+     * Thus, 1283 * 4567 = (1283 << 12) + (1283 << 8) + (1283 << 7) + (1283 << 6)...
      */
+
+    size_t m2 = fib_msb(prev2);
+    printf("m2 = %ld\n", m2);
+    fib_zero(F);
+    fib_t *temp = fib_init(10);
+    // printf("zero F = %s, zero temp = %s\n", fib_print(F), fib_print(temp));
+
+
+    for(int i = 0; i <= m2; i++){
+        if(fib_bitisone(prev2, i)){
+            /* prev1 shift left and add to F */
+            fib_lsh(prev1, i, temp);
+
+            // printf("temp[0] = %llu, temp[1] = %llu, F[0] = %llu\n", temp->num[0], temp->num[1], F->num[0], F->num[1]);
+            fib_add(F, temp, F);
+            printf("temp[0] = %llu, temp[1] = %llu, F[0] = %llu, F[1] = %llu\n", temp->num[0], temp->num[1], F->num[0], F->num[1]);
+
+        }
+    }
+    fib_free(temp);
 }
 
 /**
@@ -439,19 +482,13 @@ void fibnum_iter(unsigned int n){
 
 #include <time.h>
 int main(){
-    
-    fib_t *F = fib_init(1);
-    F->num[0] = 1;
     fib_t *temp = fib_init(1);
-    // char *res = fib_print(F);
-    // printf("F = %s\n", res);
-    printf("KKK\n");
-    fib_lsh(F, 128, temp);
-    char *res = fib_print(temp);
-    printf("F << 64 = %s\n", res);
-    free(res);
-    fib_free(F);
-    fib_free(temp);
-    // printf("64 >> 6 = %d\n", 64 >> 6);
+    temp->num[0] = 18446744073709551615;
+    fib_t *temp2 = fib_init(1);
+    temp2->num[0] = 8;
+    fib_t *temp3 = fib_init(1);
+    fib_mul(temp, temp2, temp3);
+    printf("temp3 = %s\n", fib_print(temp3));
+    printf("%llu\n", 18446744073709551615 * 8);
     return 0;
 }
