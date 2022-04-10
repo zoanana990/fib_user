@@ -219,13 +219,10 @@ char *fib_print(fib_t *F){
     res[0] = '0', res[1] = '\0';
     for(int i = 0; i< F->size; i++){
         temp[i] = fib_itos(F->num[i]);
-        for(int j = 0; j < i; j++){
-            temp[i] = fib_strmul(temp[i], ULL_MAX_STR);
-            printf("temp[%d] = %s\n", i, temp[i]);
-        }
+        for(int j = 0; j < i; j++)
+            temp[i] = fib_strmul(temp[i], ULL_MAX_STR); 
         res = fib_stradd(temp[i], res);
     }
-    printf("res = %s\n", res);
 
     // check redundant zeroes
     // unsigned int n = fib_strlen(res), index = 0;
@@ -233,8 +230,6 @@ char *fib_print(fib_t *F){
     // for(int i = 0; i < n; i++)
     //     if(res[i] == '0')
     //         index++;
-
-
 
     return res;
 }
@@ -328,13 +323,10 @@ void fib_idxlsh(fib_t *F, const unsigned int idx){
 
 /* Shift at most 63 bit */
 void fib_numlsh(fib_t *F, unsigned int bit){
-    printf("F->num[0] >> (64 - bit) = %llu, F->num[1] = %d, \
-    F->num[i] << bit | F->num[i - 1] >> (64 - bit) = %d\n", \
-    F->num[0] >> (64 - bit), F->num[1], F->num[1] << bit | F->num[0] >> (64 - bit));
 
     for(int i = F->size - 1; i > 0; i--)
         F->num[i] = F->num[i] << bit | F->num[i - 1] >> (64 - bit);
-    // printf("F->num[i - 1] >> (64 - bit) = %llu, F->num[1] = %d\n", F->num[0] >> (64 - bit), F->num[1]);
+
     F->num[0] <<= bit;
 }
 
@@ -350,7 +342,7 @@ void fib_lsh(fib_t *F, unsigned int bit, fib_t *dst){
     int count = 0, i;
     size_t msb = fib_msb(F);
     if(NEED_SIZE(msb) < NEED_SIZE(msb + bit))
-        fib_resize(F, NEED_SIZE(msb + bit));
+        fib_resize(dst, NEED_SIZE(msb + bit));
 
     for(i = bit; i > 63; i >>= 6)
         count++;
@@ -359,25 +351,27 @@ void fib_lsh(fib_t *F, unsigned int bit, fib_t *dst){
         fib_idxlsh(dst, i);
     
     bit = bit - (count << 6);
-    printf("F->size = %d, bit = %d\n", F->size, bit);
 
     if(bit)
         fib_numlsh(dst, bit);
 }
 
-void fib_numrsh(fib_t *F, unsigned int bit){
-
-}
-
-/* right shift */
-void fib_rsh(fib_t *F, unsigned int bit, fib_t *dst){
-    
-}
-
 /* F = prev1 + prev2 */
 void fib_add(fib_t *prev1, fib_t *prev2, fib_t *F){
 
-    int msb = MAX(fib_msb(prev1), fib_msb(prev2));
+    int m1 = fib_msb(prev1), m2 = fib_msb(prev2);
+    int msb = MAX(m1, m2);
+    int size = MAX(NEED_SIZE(m1), NEED_SIZE(m2));
+
+    printf("msb = %d, size = %d\n", msb, size);
+
+    if(NEED_SIZE(msb) < NEED_SIZE(msb + 1)){
+        fib_resize(F, NEED_SIZE(msb + 1));
+    }else if(size > F->size)
+        fib_resize(F, size);
+    
+    printf("size = %d\n", F->size);
+
 
     unsigned int carry = 0;
 
@@ -388,12 +382,17 @@ void fib_add(fib_t *prev1, fib_t *prev2, fib_t *F){
         unsigned long long sum = p1 + p2 + carry;
         F->num[i] = sum;
         carry = DETECT_OVERFLOW(p1, p2); 
+        printf("carry = %d\n", carry);
     }
+
 
     if(carry){
         fib_resize(F, F->size + 1);
         F->num[F->size - 1] = 1;
     }
+
+    printf("carry = %d, size = %d\n", carry, F->size);
+        
 }
 
 /* F = prev1 - prev2 */
@@ -438,21 +437,15 @@ void fib_mul(fib_t *prev1, fib_t *prev2, fib_t *F){
      */
 
     size_t m2 = fib_msb(prev2);
-    printf("m2 = %ld\n", m2);
+    
     fib_zero(F);
-    fib_t *temp = fib_init(10);
-    // printf("zero F = %s, zero temp = %s\n", fib_print(F), fib_print(temp));
-
+    fib_t *temp = fib_init(1);
 
     for(int i = 0; i <= m2; i++){
-        if(fib_bitisone(prev2, i)){
+        if(fib_bitisone(prev2, i)){           
             /* prev1 shift left and add to F */
             fib_lsh(prev1, i, temp);
-
-            // printf("temp[0] = %llu, temp[1] = %llu, F[0] = %llu\n", temp->num[0], temp->num[1], F->num[0], F->num[1]);
             fib_add(F, temp, F);
-            printf("temp[0] = %llu, temp[1] = %llu, F[0] = %llu, F[1] = %llu\n", temp->num[0], temp->num[1], F->num[0], F->num[1]);
-
         }
     }
     fib_free(temp);
@@ -480,15 +473,46 @@ void fibnum_iter(unsigned int n){
     return;
 }
 
+void fibnum_fast_doubling(unsigned int n){
+    /**
+     * @brief Fast Doubling Method
+     * F(2k)     = F(k) * (2F(k+1) - F(k))
+     * F(2k + 1) = F(k) * F(k) + F(k+1) * F(k+1)
+     */
+    
+    fib_t *k = fib_init(2);
+    fib_t *k1 = fib_init(1);
+    k1->num[0] = 1;
+
+    fib_t *F = fib_init(1);
+    fib_t *F1 = fib_init(1);
+
+    /* Fast Doubling */
+    for(unsigned long long i = 1 << 63UL; i; i>>=1){
+        i++;
+    }
+
+    fib_free(k);
+    fib_free(k1);
+    fib_free(F);
+    fib_free(F1);
+}
+
 #include <time.h>
 int main(){
-    fib_t *temp = fib_init(1);
-    temp->num[0] = 18446744073709551615;
-    fib_t *temp2 = fib_init(1);
-    temp2->num[0] = 8;
-    fib_t *temp3 = fib_init(1);
-    fib_mul(temp, temp2, temp3);
-    printf("temp3 = %s\n", fib_print(temp3));
-    printf("%llu\n", 18446744073709551615 * 8);
+    
+    fib_t *k = fib_init(2);
+    fib_t *k1 = fib_init(1);
+    k->num[0] = 18446744073709551615;
+    k->num[1] = 18446744073709551615;
+    k1->num[0] = 1;
+
+    fib_t *F = fib_init(1);
+    fib_t *F1 = fib_init(1);
+
+    fib_add(k, k1, F);
+    printf("F = %s, size = %d\n", fib_print(F), F->size);
+
+    
     return 0;
 }
