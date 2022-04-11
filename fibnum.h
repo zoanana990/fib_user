@@ -1,5 +1,5 @@
 /**
- * @file fibnum.c
+ * @file fibnum.h
  * @author zoanana990
  * @brief 
  * @version 0.1
@@ -33,7 +33,8 @@ typedef struct fibnum{
 #define print_each_index(F) \
      for(int i=0; i<F->size; i++) \
         printf("num[%d] = %llu\n", i, F->num[i]) \
-     
+
+// #define MSB(x) 
 
 fib_t *fib_init(size_t);
 void fib_free(fib_t *);

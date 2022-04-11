@@ -37,7 +37,7 @@ void fib_resize(fib_t *F, size_t S){
     if(F->size < S)
         for(int i = F->size; i < S; i++)
             F->num[i] = 0;
-            
+
     F->size = S;
 }
 
@@ -377,8 +377,6 @@ void fib_add(fib_t *prev1, fib_t *prev2, fib_t *F){
     int msb = MAX(m1, m2);
     int size = MAX(NEED_SIZE(m1), NEED_SIZE(m2));
 
-    printf("msb = %d, size = %d\n", msb, size);
-
     if(NEED_SIZE(msb) < NEED_SIZE(msb + 1)){
         fib_resize(F, NEED_SIZE(msb + 1));
     }else if(size > F->size)
@@ -394,7 +392,6 @@ void fib_add(fib_t *prev1, fib_t *prev2, fib_t *F){
         F->num[i] = sum;
         carry = DETECT_OVERFLOW(p1, p2, carry); 
     }
-
 
     if(carry){
         fib_resize(F, F->size + 1);
@@ -470,14 +467,15 @@ void fib_mul(fib_t *prev1, fib_t *prev2, fib_t *F){
      * Thus, 1283 * 4567 = (1283 << 12) + (1283 << 8) + (1283 << 7) + (1283 << 6)...
      */
 
-    
-
     size_t m2 = fib_msb(prev2);
     
+
+
     fib_zero(F);
     fib_t *temp = fib_init(1);
-
+    // printf("MMM\n");
     for(int i = 0; i <= m2; i++){
+        // printf("M: %d\n", fib_bitisone(prev2, i));
         if(fib_bitisone(prev2, i)){           
             /* prev1 shift left and add to F */
             fib_lsh(prev1, i, temp);
@@ -509,35 +507,74 @@ void fibnum_iter(unsigned int n){
     return;
 }
 
-void fibnum_fast_doubling(unsigned int n){
+char* fibnum_fast_doubling(unsigned int n){
+    
     /**
      * @brief Fast Doubling Method
      * F(2k)     = F(k) * (2F(k+1) - F(k))
      * F(2k + 1) = F(k) * F(k) + F(k+1) * F(k+1)
      */
-    
-    fib_t *k = fib_init(2);
-    fib_t *k1 = fib_init(1);
-    k1->num[0] = 1;
 
-    fib_t *F = fib_init(1);
-    fib_t *F1 = fib_init(1);
+    fib_t *f1 = fib_init(1); // F(k)
+    fib_t *f2 = fib_init(1); // F(k + 1)
+    f1->num[0] = 1;
+    f2->num[0] = 1;
+    fib_t *k1 = fib_init(1); // F(2k)
+    fib_t *k2 = fib_init(1); // F(2k + 1)
+
+    int msb = 63 - gcc_clz(10);
+
 
     /* Fast Doubling */
-    for(unsigned long long i = 1UL << 63; i; i>>=1){
-        i++;
+    for(unsigned long long i = 1UL << msb; i > 0; i>>=1){
+        fib_t *t1 = fib_init(1), *f11 = fib_init(1), *f22 = fib_init(1);
+
+        /* F(2k) = F(k) * [ 2 * F(k+1) – F(k) ] */
+        fib_assign(f2, k1);  // k1 = f2
+        fib_lsh(k1, 1, k1);  // k1 = k1 * 2
+        fib_sub(k1, f1, k1); // k1 = k1 - f1
+        fib_mul(k1, f1, t1); // k1 = f1 * k1
+        fib_assign(t1, k1);
+
+        /* F(2k+1) = F(k)^2 + F(k+1)^2 */
+        fib_mul(f1, f1, f11); // f1 = f1 * f1
+        fib_mul(f2, f2, f22); // f2 = f2 * f2
+        fib_add(f11, f22, k2); // k2 = f2 + k2    
+        fib_free(t1), fib_free(f11), fib_free(f22);
+
+        if (n & i) {
+            fib_assign(k2, f1);
+            fib_assign(k1, f2);
+            fib_add(f2, k2, f2);
+        } else {
+            fib_assign(k1, f1);
+            fib_assign(k2, f2);
+        }
     }
 
-    fib_free(k);
+    char *s = fib_print(k1);
+
     fib_free(k1);
-    fib_free(F);
-    fib_free(F1);
+    fib_free(k2);
+    fib_free(f1);
+    fib_free(f2);
+
+    return s;
 }
 
 #include <time.h>
 int main(){
     
-    fibnum_fast_doubling(100);
-
+    for(int i = 0; i <=10000; i++){
+        struct timespec start, end;
+        clock_gettime(CLOCK_MONOTONIC, &start);
+        char* s  = fibnum_fast_doubling(999);
+        clock_gettime(CLOCK_MONOTONIC, &end);
+        long long ut = (long long)(end.tv_sec * 1e9 + end.tv_nsec)
+                 - (start.tv_sec * 1e9 + start.tv_nsec);
+        printf("%ld\n", ut);
+        free(s);
+    }
+    
     return 0;
 }
