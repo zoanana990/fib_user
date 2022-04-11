@@ -37,7 +37,7 @@ void fib_resize(fib_t *F, size_t S){
     if(F->size < S)
         for(int i = F->size; i < S; i++)
             F->num[i] = 0;
-
+            
     F->size = S;
 }
 
@@ -277,6 +277,17 @@ unsigned int fib_msb(fib_t *F){
     return F->size * 64 - 1 - gcc_clz(F->num[F->size-1]);
 }
 
+unsigned int fib_msi(fib_t *F){
+
+    unsigned int count = 0;
+    for(int i=F->size - 1; i>=0; i--){
+        if(F->num[i] == 0)
+            count++;
+        else break;
+    }
+    return F->size - count == 0 ? 1 : F->size - count;
+}
+
 /* Compare two Fibonaccir Number */
 int fib_cmp(fib_t *prev1, fib_t *prev2){
     
@@ -339,8 +350,11 @@ void fib_lsh(fib_t *F, unsigned int bit, fib_t *dst){
      * @brief If we need to shift 64 bit, 129 bit...
      * we can first shift >> 63, then shift 1 bit
      */
+
     int count = 0, i;
+
     size_t msb = fib_msb(F);
+
     if(NEED_SIZE(msb) < NEED_SIZE(msb + bit))
         fib_resize(dst, NEED_SIZE(msb + bit));
 
@@ -369,9 +383,6 @@ void fib_add(fib_t *prev1, fib_t *prev2, fib_t *F){
         fib_resize(F, NEED_SIZE(msb + 1));
     }else if(size > F->size)
         fib_resize(F, size);
-    
-    printf("size = %d\n", F->size);
-
 
     unsigned int carry = 0;
 
@@ -381,23 +392,46 @@ void fib_add(fib_t *prev1, fib_t *prev2, fib_t *F){
         unsigned long long p2 = (i < prev2->size) ? prev2->num[i] : 0;
         unsigned long long sum = p1 + p2 + carry;
         F->num[i] = sum;
-        carry = DETECT_OVERFLOW(p1, p2); 
-        printf("carry = %d\n", carry);
+        carry = DETECT_OVERFLOW(p1, p2, carry); 
     }
 
 
     if(carry){
         fib_resize(F, F->size + 1);
         F->num[F->size - 1] = 1;
-    }
-
-    printf("carry = %d, size = %d\n", carry, F->size);
-        
+    }        
 }
 
 /* F = prev1 - prev2 */
-void fib_sub(fib_t *prev1, fib_t *prev2, fib_t *F){
+void fib_sub(fib_t *Big, fib_t *Small, fib_t *F){
+    
+    /* if Small > Big, Swap */
+    if(fib_cmp(Big, Small) == -1){
+        fib_sub(Small, Big, F);
+        return;
+    }
 
+    int sub_size = MAX(Big->size, Small->size);
+    fib_resize(F, sub_size);
+
+    long long int carry = 0;
+    for (int i = 0; i < F->size; i++) {
+        unsigned int B = (i < Big->size) ? Big->num[i] : 0;
+        unsigned int S = (i < Small->size) ? Small->num[i] : 0;
+
+        if(B < S || B < carry){
+            /* get carry to do */
+            F->num[i] = ULL_MAX - S + B - carry + 1;
+            carry = 1;
+        }else{
+            F->num[i] = B - S - carry;
+            carry = 0;
+        }
+    }
+
+    /* F resize */
+    size_t n = fib_msi(F);
+    fib_resize(F, n);
 }
 
 /* This function is to test the bit is one */
@@ -435,6 +469,8 @@ void fib_mul(fib_t *prev1, fib_t *prev2, fib_t *F){
      * the digit in one is 12, 8, 7, 6, 4, 2, 1, 0 (Here is a function)
      * Thus, 1283 * 4567 = (1283 << 12) + (1283 << 8) + (1283 << 7) + (1283 << 6)...
      */
+
+    
 
     size_t m2 = fib_msb(prev2);
     
@@ -488,7 +524,7 @@ void fibnum_fast_doubling(unsigned int n){
     fib_t *F1 = fib_init(1);
 
     /* Fast Doubling */
-    for(unsigned long long i = 1 << 63UL; i; i>>=1){
+    for(unsigned long long i = 1UL << 63; i; i>>=1){
         i++;
     }
 
@@ -501,18 +537,7 @@ void fibnum_fast_doubling(unsigned int n){
 #include <time.h>
 int main(){
     
-    fib_t *k = fib_init(2);
-    fib_t *k1 = fib_init(1);
-    k->num[0] = 18446744073709551615;
-    k->num[1] = 18446744073709551615;
-    k1->num[0] = 1;
+    fibnum_fast_doubling(100);
 
-    fib_t *F = fib_init(1);
-    fib_t *F1 = fib_init(1);
-
-    fib_add(k, k1, F);
-    printf("F = %s, size = %d\n", fib_print(F), F->size);
-
-    
     return 0;
 }

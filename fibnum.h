@@ -18,8 +18,11 @@
 #define ROUND_UP_TO_64(x) (((x) + 0x3F) & (~(0x3F)))
 
 /* Source: CSAPP Chapter 2 Example 21 */
-#define DETECT_OVERFLOW(x, y) ((x) + (y) < MAX(x, y) ? 1 : 0)
+#define DETECT_OVERFLOW(x, y, carry) ((x) + (y) + (carry) < MAX(x, y) ? 1 : 0)
+
 #define ULL_MAX_STR "18446744073709551616"
+#define ULL_MAX 18446744073709551615
+
 #define NEED_SIZE(x) (ROUND_UP_TO_64(x) >> 6) 
 
 typedef struct fibnum{
